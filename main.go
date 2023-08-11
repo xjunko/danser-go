@@ -11,10 +11,11 @@ __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001; /
 import "C"
 
 import (
+	"os"
+
 	"github.com/wieku/danser-go/app"
 	"github.com/wieku/danser-go/framework/env"
 	"github.com/wieku/danser-go/launcher"
-	"os"
 )
 
 func main() {
