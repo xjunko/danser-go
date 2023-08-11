@@ -1,6 +1,9 @@
 package graphics
 
 import (
+	"math"
+	"sync"
+
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/wieku/danser-go/app/settings"
 	"github.com/wieku/danser-go/app/skin"
@@ -17,8 +20,6 @@ import (
 	color2 "github.com/wieku/danser-go/framework/math/color"
 	"github.com/wieku/danser-go/framework/math/mutils"
 	"github.com/wieku/danser-go/framework/math/vector"
-	"math"
-	"sync"
 )
 
 const scaling = 0.625
@@ -141,8 +142,9 @@ func (cursor *osuRenderer) SetPosition(position vector.Vector2f) {
 	}
 }
 
-func (cursor *osuRenderer) Update(delta float64) {
+func (cursor *osuRenderer) Update(delta float64, alpha float64) {
 	dirtyLocal := false
+	dont_draw_trail := alpha < 0.9
 
 	cursor.clock += delta / 100
 
@@ -163,8 +165,11 @@ func (cursor *osuRenderer) Update(delta float64) {
 		cursor.VaoPos = cursor.Position
 		cursor.RendPos = cursor.Position
 
-		cursor.sixtyDelta += delta
-		if cursor.sixtyDelta >= 16.6667 {
+		if !dont_draw_trail {
+			cursor.sixtyDelta += delta
+		}
+
+		if cursor.sixtyDelta >= 16.6667 && !dont_draw_trail {
 			spr := sprite.NewSpriteSingle(cursor.trail, cursor.currentTime, cursor.Position.Copy64(), vector.Centre)
 
 			spr.SetScale(settings.Skin.Cursor.TrailScale)
@@ -187,7 +192,7 @@ func (cursor *osuRenderer) Update(delta float64) {
 	distance := cursor.trail.Width / 2.5 * scaling / float32(settings.Skin.Cursor.LongTrailDensity)
 	points := cursor.Position.Dst(cursor.LastPos)
 
-	if int(points/distance) > 0 {
+	if int(points/distance) > 0 && !dont_draw_trail {
 		temp := cursor.LastPos
 		for i := distance; i < points; i += distance {
 			temp = cursor.Position.Sub(cursor.LastPos).Scl(i / points).Add(cursor.LastPos)
@@ -307,7 +312,7 @@ func (cursor *osuRenderer) DrawM(scale, expand float64, batch *batch.QuadBatch, 
 	}
 
 	batch.ResetTransform()
-	batch.SetColor(1, 1, 1, float64(color.A))
+	batch.SetColor(float64(color.R), float64(color.G), float64(color.B), float64(color.A))
 	batch.SetScale(scaleExpanded, scaleExpanded)
 	batch.SetSubScale(1, 1)
 

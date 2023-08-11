@@ -2,6 +2,13 @@ package states
 
 import (
 	"fmt"
+	"log"
+	"math"
+	"math/rand"
+	"path/filepath"
+	"runtime"
+	"strconv"
+
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/wieku/danser-go/app/audio"
 	"github.com/wieku/danser-go/app/beatmap"
@@ -32,12 +39,6 @@ import (
 	"github.com/wieku/danser-go/framework/math/vector"
 	"github.com/wieku/danser-go/framework/qpc"
 	"github.com/wieku/danser-go/framework/statistic"
-	"log"
-	"math"
-	"math/rand"
-	"path/filepath"
-	"runtime"
-	"strconv"
 )
 
 const windowsOffset = 15
@@ -379,8 +380,10 @@ func NewPlayer(beatMap *beatmap.BeatMap) *Player {
 			fadeOut = 250
 		}
 
-		s.SetBeatmapEnd(beatmapEnd + fadeOut)
+		s.SetBeatmapEnd(beatmapEnd + 3000 + fadeOut)
 	}
+
+	beatmapEnd += 5000
 
 	if !math.IsInf(settings.END, 1) {
 		for _, o := range beatMap.HitObjects {

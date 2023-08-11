@@ -2,6 +2,10 @@ package dance
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
+	"time"
+
 	"github.com/karrick/godirwalk"
 	"github.com/wieku/danser-go/app/dance/input"
 	"github.com/wieku/danser-go/app/dance/movers"
@@ -10,8 +14,6 @@ import (
 	"github.com/wieku/danser-go/framework/env"
 	"github.com/wieku/danser-go/framework/math/mutils"
 	"github.com/wieku/rplpa"
-	"sort"
-	"time"
 
 	//"github.com/thehowl/go-osuapi"
 	"github.com/wieku/danser-go/app/beatmap"
@@ -19,15 +21,19 @@ import (
 	"github.com/wieku/danser-go/app/graphics"
 	"github.com/wieku/danser-go/app/rulesets/osu"
 	"github.com/wieku/danser-go/app/settings"
+
 	//"github.com/wieku/danser-go/app/utils"
-	"github.com/wieku/danser-go/framework/math/math32"
-	"github.com/wieku/danser-go/framework/math/vector"
 	"io/ioutil"
 	"log"
+
+	"github.com/wieku/danser-go/framework/math/math32"
+	"github.com/wieku/danser-go/framework/math/vector"
+
 	//"net/http"
 	//"net/url"
 	"os"
 	"path/filepath"
+
 	//"strconv"
 	"strings"
 	"unicode"
@@ -110,9 +116,10 @@ func (controller *ReplayController) SetBeatMap(beatMap *beatmap.BeatMap) {
 	}
 
 	if !localReplay {
-		sort.Slice(candidates, func(i, j int) bool {
-			return candidates[i].Score > candidates[j].Score
-		})
+		// NOTE [xJunko]: Dont sort based on score.
+		// sort.Slice(candidates, func(i, j int) bool {
+		// 	return candidates[i].Score > candidates[j].Score
+		// })
 
 		if settings.KNOCKOUTREPLAYS == nil || len(settings.KNOCKOUTREPLAYS) == 0 { // limit only with classic knockout
 			candidates = candidates[:mutils.Min(len(candidates), settings.Knockout.MaxPlayers)]
@@ -226,10 +233,11 @@ func (controller *ReplayController) getCandidates() (candidates []*rplpa.Replay)
 			return
 		}
 
-		if !strings.EqualFold(replayD.BeatmapMD5, controller.bMap.MD5) {
-			log.Println("Incompatible maps, skipping", replayD.Username)
-			return
-		}
+		// HACKHACK [xJunko]: yes.
+		// if !strings.EqualFold(replayD.BeatmapMD5, controller.bMap.MD5) {
+		// 	log.Println("Incompatible maps, skipping", replayD.Username)
+		// 	return
+		// }
 
 		if !difficulty.Modifier(replayD.Mods).Compatible() || difficulty.Modifier(replayD.Mods).Active(difficulty.Target) {
 			log.Println("Excluding for incompatible mods:", replayD.Username)
@@ -250,6 +258,18 @@ func (controller *ReplayController) getCandidates() (candidates []*rplpa.Replay)
 	}
 
 	if settings.KNOCKOUTREPLAYS != nil && len(settings.KNOCKOUTREPLAYS) > 0 {
+		sort.Slice(settings.KNOCKOUTREPLAYS, func(i, j int) bool {
+			numI, errI := strconv.Atoi(settings.KNOCKOUTREPLAYS[i][:len(settings.KNOCKOUTREPLAYS[i])-len(".txt")]) // Extract numeric value from the first string
+			numJ, errJ := strconv.Atoi(settings.KNOCKOUTREPLAYS[j][:len(settings.KNOCKOUTREPLAYS[j])-len(".txt")]) // Extract numeric value from the second string
+
+			if errI == nil && errJ == nil {
+				return numI < numJ
+			}
+
+			// If there was an error parsing the numeric value, fallback to lexicographic sorting
+			return settings.KNOCKOUTREPLAYS[i] < settings.KNOCKOUTREPLAYS[j]
+		})
+
 		for _, r := range settings.KNOCKOUTREPLAYS {
 			tryAddReplay(r, false)
 		}
@@ -268,7 +288,7 @@ func (controller *ReplayController) getCandidates() (candidates []*rplpa.Replay)
 
 				return nil
 			},
-			Unsorted:            true,
+			Unsorted:            false,
 			FollowSymbolicLinks: true,
 		})
 	}

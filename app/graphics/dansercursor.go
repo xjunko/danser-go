@@ -1,6 +1,9 @@
 package graphics
 
 import (
+	"math"
+	"sync"
+
 	"github.com/wieku/danser-go/app/settings"
 	"github.com/wieku/danser-go/framework/assets"
 	"github.com/wieku/danser-go/framework/graphics/attribute"
@@ -10,8 +13,6 @@ import (
 	color2 "github.com/wieku/danser-go/framework/math/color"
 	"github.com/wieku/danser-go/framework/math/mutils"
 	"github.com/wieku/danser-go/framework/math/vector"
-	"math"
-	"sync"
 )
 
 var danserShader *shader.RShader = nil

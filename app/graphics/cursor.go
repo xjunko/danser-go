@@ -1,6 +1,10 @@
 package graphics
 
 import (
+	"math"
+	"math/rand"
+	"time"
+
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/wieku/danser-go/app/bmath/camera"
 	"github.com/wieku/danser-go/app/settings"
@@ -15,14 +19,11 @@ import (
 	color2 "github.com/wieku/danser-go/framework/math/color"
 	"github.com/wieku/danser-go/framework/math/math32"
 	"github.com/wieku/danser-go/framework/math/vector"
-	"math"
-	"math/rand"
-	"time"
 )
 
 type cursorRenderer interface {
 	SetPosition(position vector.Vector2f)
-	Update(delta float64)
+	Update(delta float64, alpha float64)
 	UpdateRenderer()
 	DrawM(scale, expand float64, batch *batch.QuadBatch, color color2.Color, colorGlow color2.Color)
 }
@@ -100,6 +101,8 @@ type Cursor struct {
 
 	rippleContainer *sprite.Manager
 	time            float64
+
+	AlphaHack float64
 }
 
 func NewCursor() *Cursor {
@@ -115,7 +118,8 @@ func NewCursor() *Cursor {
 	if cursor.lastSetting {
 		cursor.renderer = newOsuRenderer()
 	} else {
-		cursor.renderer = newDanserRenderer()
+		panic("Not implemented (more like, i dont care.)")
+		// cursor.renderer = newDanserRenderer()
 	}
 
 	skin.GetTexture("cursor-ripple")
@@ -124,6 +128,7 @@ func NewCursor() *Cursor {
 	cursor.smokeContainer = sprite.NewManager()
 
 	cursor.rippleContainer = sprite.NewManager()
+	cursor.AlphaHack = 1.0
 
 	return cursor
 }
@@ -210,17 +215,17 @@ func (cursor *Cursor) Update(delta float64) {
 
 	cursor.scale.UpdateD(delta)
 
-	cursor.renderer.Update(delta)
+	cursor.renderer.Update(delta, cursor.AlphaHack)
 
 	cursor.rippleContainer.Update(cursor.time)
 }
 
 func (cursor *Cursor) smokeUpdate() {
-	if !settings.Cursor.SmokeEnabled || settings.PLAYERS != 1 {
-		return
-	}
+	// if !settings.Cursor.SmokeEnabled || settings.PLAYERS != 1 {
+	// 	return
+	// }
 
-	if cursor.SmokeKey && settings.PLAYERS == 1 {
+	if cursor.SmokeKey {
 		if !cursor.lastSmokeKey {
 			cursor.lastSmokePosition = cursor.Position
 			cursor.firstSmokePosition = cursor.Position
@@ -289,7 +294,8 @@ func (cursor *Cursor) UpdateRenderer() {
 		if cursor.lastSetting {
 			cursor.renderer = newOsuRenderer()
 		} else {
-			cursor.renderer = newDanserRenderer()
+			panic("again, dont care.")
+			// cursor.renderer = newDanserRenderer()
 		}
 	}
 
@@ -326,11 +332,15 @@ func (cursor *Cursor) Draw(scale float64, batch *batch.QuadBatch, color color2.C
 }
 
 func (cursor *Cursor) DrawM(scale float64, batch *batch.QuadBatch, color color2.Color, colorGlow color2.Color) {
+	if cursor.Name == "AUTO_IGNORE" {
+		return
+	}
+
 	if cursor.rippleContainer.GetNumProcessed() > 0 || cursor.smokeContainer.GetNumProcessed() > 0 {
 		batch.Begin()
-		batch.SetAdditive(false)
+		batch.SetAdditive(true)
 		batch.ResetTransform()
-		batch.SetColor(1, 1, 1, float64(color.A))
+		batch.SetColor(float64(color.R), float64(color.G), float64(color.B), float64(color.A)*cursor.AlphaHack)
 		batch.SetScale(scaling*scaling, scaling*scaling)
 		batch.SetSubScale(1, 1)
 
@@ -345,7 +355,7 @@ func (cursor *Cursor) DrawM(scale float64, batch *batch.QuadBatch, color color2.
 		cursorFbo.ClearColor(0.0, 0.0, 0.0, 0.0)
 	}
 
-	cursor.renderer.DrawM(scale, cursor.scale.GetValue(), batch, color, colorGlow)
+	cursor.renderer.DrawM(scale, cursor.scale.GetValue(), batch, color2.Color{R: color.R, G: color.G, B: color.B, A: color.A * float32(cursor.AlphaHack)}, colorGlow)
 
 	if useAdditive {
 		cursorFbo.Unbind()
